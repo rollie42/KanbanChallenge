@@ -1,6 +1,14 @@
 import { useState } from "react";
-import { container, kanbanContainer, kanbanLane } from "./App.css.ts";
+import {
+  container,
+  kanbanContainer,
+  kanbanLane,
+  slideInFromLeft,
+  slideInFromRight,
+  taskCard,
+} from "./App.css.ts";
 import { TasksProvider, useTasks } from "./Context.tsx";
+import type { Task } from "./Task.ts";
 
 export type Status = "Backlog" | "To Do" | "In Progress" | "Done";
 export const StatusArr: Status[] = ["Backlog", "To Do", "In Progress", "Done"];
@@ -14,11 +22,26 @@ const Lane = ({ status }: { status: Status }) => {
       b.operations[b.operations.length - 1].ts.getTime()
   );
   const idx = StatusArr.indexOf(status);
+  const slideStyle = (task: Task) =>
+    task.operations.length < 2
+      ? ""
+      : StatusArr.indexOf(task.operations[task.operations.length - 2].status) <
+        idx
+      ? slideInFromLeft
+      : slideInFromRight;
   return (
     <div className={kanbanLane}>
       <h2>{status}</h2>
       {tasks.map((task) => (
-        <div key={task.id} style={{ marginBottom: "1rem" }}>
+        <div
+          className={[taskCard, slideStyle(task)].join(" ")}
+          key={task.id}
+          style={{
+            marginBottom: "1rem",
+            transition: "transform 1.3s ease-in-out",
+            transform: "translateX(0px)",
+          }}
+        >
           <h3>{task.title}</h3>
           <p>{task.description}</p>
           <div>
@@ -26,7 +49,7 @@ const Lane = ({ status }: { status: Status }) => {
               disabled={idx === 0}
               onClick={() => {
                 task.status = idx > 0 ? StatusArr[idx - 1] : task.status;
-                task.operations.push({ ts: new Date() });
+                task.operations.push({ ts: new Date(), status: task.status });
                 updateTasks();
               }}
             >
@@ -37,7 +60,7 @@ const Lane = ({ status }: { status: Status }) => {
               onClick={() => {
                 task.status =
                   idx < StatusArr.length - 1 ? StatusArr[idx + 1] : task.status;
-                task.operations.push({ ts: new Date() });
+                task.operations.push({ ts: new Date(), status });
                 updateTasks();
               }}
             >
@@ -51,8 +74,6 @@ const Lane = ({ status }: { status: Status }) => {
 };
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
     <TasksProvider>
       <div className={container}>
